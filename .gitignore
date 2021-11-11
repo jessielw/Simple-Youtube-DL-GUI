@@ -1,0 +1,9 @@
+.idea/
+build/
+dist/
+Apps/
+__pycache__/
+SimpleYoutubeDLGui.spec
+config.ini
+profiles.ini
+ytconfig.ini
