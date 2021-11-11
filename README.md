@@ -1,4 +1,4 @@
-![simpleytdlgui.v1.1](simpleytdlgui.png)
+![simpleytdlgui.v1.2](simpletdlguiv1.2.png)
 
 # Simple-Youtube-DL-Gui # 
 
