@@ -375,7 +375,8 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
                                       'Encode to m4a': 'm4a',
                                       'Encode to opus': 'opus',
                                       'Encode to vorbis': 'vorbis',
-                                      'Encode to wav': 'wav'}
+                                      'Encode to wav': 'wav',
+                                      'Encode to alac': 'alac'}
         audio_menu_options_menu = OptionMenu(options_frame, audio_menu_options, *audio_menu_options_choices.keys())
         audio_menu_options_menu.config(background="#23272A", foreground="white", highlightthickness=1,
                                        width=15, anchor=W, state=DISABLED)
