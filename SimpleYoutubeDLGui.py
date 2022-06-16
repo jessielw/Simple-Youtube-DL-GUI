@@ -8,9 +8,9 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
     # Imports----------------------------------------------------------------------------------------------------------
     from tkinter import (filedialog, StringVar, Menu, E, W, N, S, LabelFrame, NORMAL, END,
                          DISABLED, Checkbutton, Label, ttk, scrolledtext, messagebox, OptionMenu,
-                         Toplevel, WORD, Entry, Button, HORIZONTAL, SUNKEN, Text)
+                         Toplevel, WORD, Entry, Button, HORIZONTAL, SUNKEN, Text, Frame)
     import pyperclip, pathlib, threading, yt_dlp
-    from re import sub
+    from re import sub, search
     from configparser import ConfigParser
 
     global main
@@ -28,8 +28,7 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
     # Main UI window --------------------------------------------------------------------------------------------------
     try:  # Checks rather or not the youtube-dl-gui window is already open
         if main is not None or Toplevel.winfo_exists(main):
-            main.lift()  # If youtube-dl-gui window exists then bring to top of all other windows
-
+            main.lift()  # If youtube-dl-gui window exists then bring to top of other windows
     except:  # If youtube-dl-gui does not exist, create it...
         if not combined_with_ffmpeg_audio_encoder:
             from tkinter import Tk, PhotoImage
@@ -37,7 +36,7 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
             main.iconphoto(True, PhotoImage(file="Runtime/Images/Youtube-DL-Gui.png"))
         if combined_with_ffmpeg_audio_encoder:
             main = Toplevel()  # Make toplevel loop if NOT standalone
-        main.title("Simple-Youtube-DL-Gui v1.21")
+        main.title("Simple-Youtube-DL-Gui v1.23")
         main.configure(background="#434547")
         window_height = 500
         window_width = 610
@@ -201,9 +200,9 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
         options_frame.grid(row=2, columnspan=4, sticky=E + W, padx=20, pady=(10, 10))
         options_frame.configure(fg="white", bg="#434547", bd=3)
 
-        options_frame.rowconfigure(1, weight=1)
-        options_frame.columnconfigure(0, weight=1)
-        options_frame.columnconfigure(1, weight=1)
+        for o_f in range(3):
+            options_frame.rowconfigure(o_f, weight=1)
+            options_frame.columnconfigure(o_f, weight=1)
 
         # ----------------------------------------------------------------------------------------------- Options Frame
 
@@ -388,6 +387,21 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
 
         # ----------------------------------------------------------------------------------------------- Audio Options
 
+        # header option -----------------------------------------------------------------------------------------------
+        header_frame = Frame(options_frame, bg="#434547")
+        header_frame.grid(row=2, column=0, columnspan=6, sticky=W + E)
+        for h_f in range(6):
+            header_frame.columnconfigure(h_f, weight=1)
+        header_frame.rowconfigure(0, weight=1)
+
+        header_label = Label(header_frame, text='HTTP Header:', bg="#434547", fg="white")
+        header_label.grid(row=0, column=0, pady=(0, 4), padx=5, sticky=E + W)
+
+        header_entry = Entry(header_frame, borderwidth=4, background="#CACACA")
+        header_entry.grid(row=0, column=1, columnspan=5, padx=5, pady=(0, 4), sticky=W + E)
+
+        # -------------------------------------------------------------------------------------------------------------
+
         # Add Link to variable ----------------------------------------------------------------------------------------
         def apply_link():
             global download_link, link_input_label, extracted_title_name
@@ -426,6 +440,25 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
                 thread = threading.Thread(target=close_encode)
                 thread.start()
 
+            # define empty dictionary for YouTube options
+            ydl_opts = {}
+
+            # check header entry box
+            if header_entry.get().strip() != '':
+                # check format
+                check_header = search(pattern=r".+:.+", string=header_entry.get().strip())
+
+                if not check_header:
+                    messagebox.showinfo(parent=main, title="Incorrect Format",
+                                        message='Header format should be\n\nVALUE:KEY')
+                    return
+                elif check_header:
+                    get_split_index = search(pattern=r":", string=header_entry.get().strip())
+                    first_string = header_entry.get().strip()[0:int(get_split_index.span()[0])]
+                    second_string = header_entry.get().strip()[int(get_split_index.span()[1]):-1]
+                    ydl_opts.update({'http_headers': {first_string: second_string}})
+
+            # progress window
             window = Toplevel(main)  # Programs download window
             window.title(extracted_title_name)  # Takes extracted_title_name and adds it as the windows title
             window.configure(background='#434547')
@@ -470,50 +503,32 @@ def youtube_dl_launcher_for_ffmpegaudioencoder():
                 def error(self, msg):
                     pass
 
+            # add general options used with ydl
+            ydl_opts.update({'ratelimit': download_rate_choices[download_rate.get()],
+                             'progress_hooks': [my_hook],
+                             'logger': MyLogger(),
+                             'noplaylist': True,
+                             'overwrites': True,
+                             'ffmpeg_location': str(pathlib.Path(ffmpeg)),
+                             'prefer_ffmpeg': True,
+                             "progress_with_newline": True,
+                             'outtmpl': str(pathlib.Path(VideoOutput)) + '/%(title)s.%(ext)s'})
+
             if video_only.get() == 'on':  # If "Best Video..." is selected then use these options for ytb-dl
-                ydl_opts = {'ratelimit': download_rate_choices[download_rate.get()],
-                            'progress_hooks': [my_hook],
-                            'noplaylist': True,
-                            'overwrites': True,
-                            'merge_output_format': 'mkv',
-                            'final_ext': 'mkv',
-                            'outtmpl': str(pathlib.Path(VideoOutput)) + '/%(title)s.%(ext)s',
-                            'ffmpeg_location': str(pathlib.Path(ffmpeg)),
-                            'logger': MyLogger(),
-                            "progress_with_newline": True,
-                            'format': video_menu_options_choices[video_menu_options.get()],
-                            'prefer_ffmpeg': True}
+                ydl_opts.update({'merge_output_format': 'mkv', 'final_ext': 'mkv',
+                                 'format': video_menu_options_choices[video_menu_options.get()]})
 
-            if video_only.get() != 'on' and audio_menu_options.get() == 'Extract Only':
+            elif video_only.get() != 'on' and audio_menu_options.get() == 'Extract Only':
                 # If "Best Video..." is NOT selected and "Audio Menu" is set to Extract Only
-                ydl_opts = {'ratelimit': download_rate_choices[download_rate.get()], 'progress_hooks': [my_hook],
-                            'noplaylist': True,
-                            'overwrites': True,
-                            'outtmpl': str(pathlib.Path(VideoOutput)) + '/%(title)s.%(ext)s',
-                            'ffmpeg_location': str(pathlib.Path(ffmpeg)),
-                            'logger': MyLogger(),
-                            "progress_with_newline": True,
-                            'format': 'bestaudio/best',
-                            'extractaudio': True,
-                            'prefer_ffmpeg': True}
+                ydl_opts.update({'format': 'bestaudio/best', 'extractaudio': True})
 
-            if video_only.get() != 'on' and audio_menu_options.get() != 'Extract Only':
+            elif video_only.get() != 'on' and audio_menu_options.get() != 'Extract Only':
                 # If "Best Video..." is NOT selected and "Audio Menu" is set to encode to another codec
-                ydl_opts = {'ratelimit': download_rate_choices[download_rate.get()], 'progress_hooks': [my_hook],
-                            'noplaylist': True,
-                            'overwrites': True,
-                            'outtmpl': str(pathlib.Path(VideoOutput)) + '/%(title)s.%(ext)s',
-                            'ffmpeg_location': str(pathlib.Path(ffmpeg)),
-                            'logger': MyLogger(),
-                            "progress_with_newline": True,
-                            'format': 'bestaudio/best',
-                            'extractaudio': True,
-                            'prefer_ffmpeg': True,
-                            'postprocessors': [{
-                                'key': 'FFmpegExtractAudio',
-                                'preferredcodec': audio_menu_options_choices[audio_menu_options.get()],
-                                'preferredquality': '0'
-                            }]}
+                ydl_opts.update({'format': 'bestaudio/best', 'extractaudio': True,
+                                 'postprocessors': [{
+                                     'key': 'FFmpegExtractAudio',
+                                     'preferredcodec': audio_menu_options_choices[audio_menu_options.get()],
+                                     'preferredquality': '0'}]})
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:  # Block of code needed to process the link/file
                 ydl.download([download_link])
