@@ -1,1 +1,3 @@
 yt-dlp
+pyinstaller
+pyperclip
